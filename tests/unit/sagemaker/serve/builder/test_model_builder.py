@@ -3270,7 +3270,7 @@ class TestModelBuilder(unittest.TestCase):
 
         mock_pysdk_model = Mock()
         mock_pysdk_model.model_data = None
-        mock_pysdk_model.env = {"HF_MODEL_ID": "meta-llama/Meta-Llama-3-1-8B-Instruct"}
+        mock_pysdk_model.env = {"HF_MODEL_ID": "meta-llama/Meta-Llama-3-2-8B-Instruct"}
 
         sample_input = {"inputs": "dummy prompt", "parameters": {}}
 
@@ -3279,7 +3279,7 @@ class TestModelBuilder(unittest.TestCase):
         dummy_schema_builder = SchemaBuilder(sample_input, sample_output)
 
         model_builder = ModelBuilder(
-            model="meta-llama/Meta-Llama-3-1-8B-Instruct",
+            model="meta-llama/Meta-Llama-3-2-8B-Instruct",
             schema_builder=dummy_schema_builder,
             env_vars={"HF_TOKEN": "token"},
             model_metadata={
@@ -3293,7 +3293,7 @@ class TestModelBuilder(unittest.TestCase):
 
         self.assertRaisesRegex(
             ValueError,
-            "Compilation is not supported for Llama-3.1 with a GPU instance.",
+            "Compilation is not supported for models greater than Llama-3.0 with a GPU instance.",
             lambda: model_builder.optimize(
                 job_name="job_name-123",
                 instance_type="ml.g5.24xlarge",
@@ -3733,6 +3733,9 @@ class TestModelBuilderOptimizationSharding(unittest.TestCase):
         pysdk_model.env = {"key": "val"}
         pysdk_model._enable_network_isolation = True
         pysdk_model.add_tags.side_effect = lambda *arg, **kwargs: None
+        pysdk_model.init_kwargs = {
+            "image_uri": "763104351884.dkr.ecr.us-west-2.amazonaws.com/djl-inference:0.29.0-lmi11.0.0-cu124"
+        }
 
         mock_build_for_jumpstart.side_effect = lambda **kwargs: pysdk_model
         mock_prepare_for_mode.side_effect = lambda *args, **kwargs: (
@@ -3803,8 +3806,9 @@ class TestModelBuilderOptimizationSharding(unittest.TestCase):
             OptimizationConfigs=[
                 {
                     "ModelShardingConfig": {
-                        "OverrideEnvironment": {"OPTION_TENSOR_PARALLEL_DEGREE": "1"}
-                    }
+                        "Image": "763104351884.dkr.ecr.us-west-2.amazonaws.com/djl-inference:0.31.0-lmi13.0.0-cu124",
+                        "OverrideEnvironment": {"OPTION_TENSOR_PARALLEL_DEGREE": "1"},
+                    },
                 }
             ],
             OutputConfig={

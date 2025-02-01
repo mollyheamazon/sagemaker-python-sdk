@@ -1,5 +1,55 @@
 # Changelog
 
+## v2.239.0 (2025-02-01)
+
+### Features
+
+ * Add support for deepseek recipes
+
+### Bug Fixes and Other Changes
+
+ * mpirun protocol - distributed training with @remote decorator
+ * Allow telemetry only in supported regions
+ * Fix ssh host policy
+
+## v2.238.0 (2025-01-29)
+
+### Features
+
+ * use jumpstart deployment config image as default optimization image
+
+### Bug Fixes and Other Changes
+
+ * chore: add new images for HF TGI
+ * update image_uri_configs  01-29-2025 06:18:08 PST
+ * skip TF tests for unsupported versions
+ * Merge branch 'master-rba' into local_merge
+ * Add missing attributes to local resourceconfig
+ * update image_uri_configs  01-27-2025 06:18:13 PST
+ * update image_uri_configs  01-24-2025 06:18:11 PST
+ * add missing schema definition in docs
+ * Omegaconf upgrade
+ * SageMaker @remote function: Added multi-node functionality
+ * remove option
+ * fix typo
+ * fix tests
+ * Add an option for user to remove inputs and container artifacts when using local model trainer
+
+## v2.237.3 (2025-01-09)
+
+### Bug Fixes and Other Changes
+
+ * pin metadata-version to 2.3
+ * model server might have already done a serialization. honor that by not decoding the request again if it is not already bytes or bytestream
+ * Disable jumpstart tests missing clean up logic
+ * Jumpstart ap southeast 5
+ * add autogluon 1.2
+ * updated inference script to cover context
+ * security update -> use sha256 instead of md5 for file hashing
+ * Fix Flake8 Violations
+ * Added parsing string support for situations where custom code might be used (ie. mlflow)
+ * Updating Inference Optimization Validations
+
 ## v2.237.2 (2024-12-17)
 
 ### Bug Fixes and Other Changes
