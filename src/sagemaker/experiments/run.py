@@ -598,7 +598,7 @@ class Run(object):
         """
         # generate an artifact name
         if not artifact_name:
-            unique_name_from_base(graph_type)
+            artifact_name = unique_name_from_base(graph_type)
 
         # create a json file in S3
         s3_uri, etag = self._artifact_uploader.upload_object_artifact(
