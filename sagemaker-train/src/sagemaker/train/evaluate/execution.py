@@ -517,6 +517,9 @@ class EvaluationPipelineExecution(BaseModel):
     eval_type: Optional[EvalType] = Field(None, description="Evaluation type")
     s3_output_path: Optional[str] = Field(None, description="S3 location where evaluation results are stored")
     
+    mlflow_resource_arn: Optional[str] = Field(None, description="MLflow tracking server or app ARN")
+    mlflow_experiment_name: Optional[str] = Field(None, description="MLflow experiment name")
+
     # Additional fields for internal use
     steps: List[Dict[str, Any]] = Field(default_factory=list, description="Raw step information from SageMaker")
     
@@ -539,6 +542,8 @@ class EvaluationPipelineExecution(BaseModel):
         session: Optional[Session] = None,
         region: Optional[str] = None,
         tags: Optional[List[TagsDict]] = [],
+        mlflow_resource_arn: Optional[str] = None,
+        mlflow_experiment_name: Optional[str] = None,
     ) -> 'EvaluationPipelineExecution':
         """Create sagemaker pipeline execution. Optionally creates pipeline.
         
@@ -571,7 +576,9 @@ class EvaluationPipelineExecution(BaseModel):
             name=name,
             eval_type=eval_type,
             status=PipelineExecutionStatus(overall_status="Starting"),
-            s3_output_path=s3_output_path
+            s3_output_path=s3_output_path,
+            mlflow_resource_arn=mlflow_resource_arn,
+            mlflow_experiment_name=mlflow_experiment_name,
         )
         
         try:
@@ -920,6 +927,44 @@ class EvaluationPipelineExecution(BaseModel):
             # Create console with Jupyter support
             console = Console(force_jupyter=True)
             
+            # MLflow link cache — regenerate every 4 min (before 5-min expiry), same as fine-tuning
+            _mlflow_cache = {'url': None, 'timestamp': 0}
+
+            def _get_cached_mlflow_url():
+                if not self.mlflow_resource_arn:
+                    return None
+                current_time = time.time()
+                if _mlflow_cache['url'] is None or (current_time - _mlflow_cache['timestamp']) > 240:
+                    try:
+                        import os
+                        import mlflow
+                        from mlflow.tracking import MlflowClient
+                        from sagemaker.core.utils.utils import SageMakerClient
+                        mlflow_arn = self.mlflow_resource_arn
+                        base_url = SageMakerClient().sagemaker_client.create_presigned_mlflow_app_url(
+                            Arn=mlflow_arn
+                        ).get('AuthorizedUrl')
+                        if base_url:
+                            try:
+                                exp_name = self.mlflow_experiment_name
+                                if not exp_name and self.arn:
+                                    arn_parts = self.arn.split('/')
+                                    if len(arn_parts) >= 4:
+                                        exp_name = arn_parts[-3]  # pipeline name fallback
+                                if exp_name:
+                                    os.environ['MLFLOW_TRACKING_URI'] = mlflow_arn
+                                    mlflow.set_tracking_uri(mlflow_arn)
+                                    exp = MlflowClient(tracking_uri=mlflow_arn).get_experiment_by_name(exp_name)
+                                    if exp:
+                                        base_url = f"{base_url}#/experiments/{exp.experiment_id}"
+                            except Exception:
+                                pass
+                        _mlflow_cache['url'] = base_url
+                    except Exception:
+                        _mlflow_cache['url'] = None
+                    _mlflow_cache['timestamp'] = current_time
+                return _mlflow_cache['url']
+
             while True:
                 clear_output(wait=True)
                 self.refresh()
@@ -960,6 +1005,14 @@ class EvaluationPipelineExecution(BaseModel):
                             links.append(f"[bright_blue underline][link={pipeline_url}]🔗 Pipeline Execution (Studio)[/link][/bright_blue underline]")
                 except Exception:
                     pass
+                # MLflow link — works in Studio and outside
+                if self.mlflow_resource_arn:
+                    try:
+                        mlflow_url = _get_cached_mlflow_url()
+                        if mlflow_url:
+                            links.append(f"[bright_blue underline][link={mlflow_url}]🔗 MLflow Experiment[/link][/bright_blue underline]")
+                    except Exception:
+                        pass
                 if links:
                     header_table.add_row("Links", " | ".join(links))
 

@@ -839,9 +839,18 @@ class BaseEvaluator(BaseModel):
             s3_output_path=self.s3_output_path,
             session=self.sagemaker_session.boto_session if hasattr(self.sagemaker_session, 'boto_session') else None,
             region=region,
-            tags=tags
+            tags=tags,
+            mlflow_resource_arn=self.mlflow_resource_arn,
+            mlflow_experiment_name=self.mlflow_experiment_name,
         )
-        
+
+        # If mlflow_experiment_name was None, the pipeline name was used as the experiment name
+        # in the rendered template. Backfill it from the execution ARN so the MLflow link works.
+        if not execution.mlflow_experiment_name and execution.arn:
+            arn_parts = execution.arn.split('/')
+            if len(arn_parts) >= 4:
+                execution.mlflow_experiment_name = arn_parts[-3]  # pipeline name
+
         return execution
     
     def evaluate(self) -> Any:
