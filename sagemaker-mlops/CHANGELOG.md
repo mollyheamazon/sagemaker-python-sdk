@@ -1,4 +1,10 @@
 # Changelog
+## v1.14.0 (2026-06-18)
+
+### Other
+
+- chore: deprecate Python 3.9 support (#5941)
+
 ## v1.13.1 (2026-06-04)
 
 - Update module dependencies
